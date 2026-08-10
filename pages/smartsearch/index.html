@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#10202b" />
+    <title>SmartSearch 控制台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand-lockup">
+          <div class="brand-mark"><i data-lucide="scan-search"></i></div>
+          <div><strong>SmartSearch</strong><span>Fallback Console</span></div>
+        </div>
+        <div class="workspace-switcher">
+          <span class="eyebrow">工作区</span>
+          <button class="workspace-button" type="button" aria-label="当前工作区">
+            <span><i data-lucide="bot"></i> AstrBot · 默认</span><i data-lucide="chevrons-up-down"></i>
+          </button>
+        </div>
+        <nav class="nav-list">
+          <a class="nav-item active" href="#overview" data-view="overview"><i data-lucide="layout-dashboard"></i><span>总览</span><b>01</b></a>
+          <a class="nav-item" href="#search" data-view="search"><i data-lucide="search"></i><span>搜索测试</span><b>02</b></a>
+          <a class="nav-item" href="#engines" data-view="engines"><i data-lucide="workflow"></i><span>引擎编排</span><b>03</b></a>
+          <a class="nav-item" href="#settings" data-view="settings"><i data-lucide="sliders-horizontal"></i><span>插件设置</span><b>04</b></a>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="connection-badge"><span class="status-dot"></span><span class="connection-text">等待 AstrBot</span></div>
+          <button class="sidebar-help" type="button" data-action="help"><i data-lucide="circle-help"></i><span>查看接入说明</span></button>
+          <div class="version">smartsearch_fallback <span id="versionValue">v1.6.5</span></div>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="mobile-brand"><i data-lucide="scan-search"></i><strong>SmartSearch</strong></div>
+          <div class="breadcrumb"><span>插件控制台</span><i data-lucide="chevron-right"></i><strong id="pageTitle">总览</strong></div>
+          <div class="topbar-actions">
+            <div class="live-indicator"><span class="status-dot"></span><span class="live-text">等待 AstrBot</span></div>
+            <button class="icon-button" type="button" title="刷新状态" data-action="refresh"><i data-lucide="refresh-cw"></i></button>
+            <button class="avatar" type="button" title="当前用户">A</button>
+          </div>
+        </header>
+
+        <div class="content-wrap">
+          <section class="view active" id="view-overview" data-view-panel="overview">
+            <div class="page-intro">
+              <div><div class="kicker">搜索编排中心 <span class="tiny-dot"></span> <span id="overviewStatus">等待插件数据</span></div><h1>搜索系统控制台</h1><p>查看引擎状态、运行真实搜索，或调整优先与兜底策略。</p></div>
+              <button class="primary-button" type="button" data-navigate="search"><i data-lucide="play"></i>运行一次搜索</button>
+            </div>
+            <div class="stat-grid">
+              <article class="stat-block"><div class="stat-label">已注册引擎</div><div class="stat-value"><span id="engineCount">—</span> <span id="engineTotal">/ —</span></div><div class="stat-meta positive"><i data-lucide="network"></i><span id="strategyText">等待配置</span></div></article>
+              <article class="stat-block"><div class="stat-label">本次页面搜索</div><div class="stat-value" id="searchCount">0</div><div class="stat-meta"><i data-lucide="search"></i>由当前插件实例统计</div></article>
+              <article class="stat-block"><div class="stat-label">LLM 结果验证</div><div class="stat-value" id="llmValue">—</div><div class="stat-meta positive"><i data-lucide="shield-check"></i>失败时不阻塞搜索</div></article>
+              <article class="stat-block accent-stat"><div class="stat-label">插件版本</div><div class="stat-value" id="versionValueLarge">1.6.5</div><div class="progress-track"><span style="width: 100%"></span></div><div class="stat-meta">AstrBot Plugin Page</div></article>
+            </div>
+            <div class="dashboard-grid">
+              <section class="panel health-panel">
+                <div class="panel-heading"><div><h2>引擎健康度</h2><p>由插件接口实时检查配置状态</p></div><button class="text-button" type="button" data-navigate="engines">管理引擎 <i data-lucide="arrow-up-right"></i></button></div>
+                <div class="health-list" id="healthList"><div class="empty-inline">正在等待 AstrBot API</div></div>
+              </section>
+              <section class="panel activity-panel">
+                <div class="panel-heading"><div><h2>当前策略</h2><p>搜索请求的执行顺序</p></div><span class="strategy-pill"><i data-lucide="route"></i><span id="strategyTextAside">等待配置</span></span></div>
+                <div class="activity-list">
+                  <div class="activity-item"><span class="activity-icon blue"><i data-lucide="search"></i></span><div><strong>优先引擎</strong><small id="primaryValue">—</small></div><span class="activity-time">01</span></div>
+                  <div class="activity-item"><span class="activity-icon teal"><i data-lucide="life-buoy"></i></span><div><strong>兜底引擎</strong><small id="fallbackValue">—</small></div><span class="activity-time">02</span></div>
+                  <div class="activity-item"><span class="activity-icon amber"><i data-lucide="timer"></i></span><div><strong>单引擎超时</strong><small id="timeoutValue">—</small></div><span class="activity-time">秒</span></div>
+                  <div class="activity-item"><span class="activity-icon green"><i data-lucide="clock-3"></i></span><div><strong>整体超时</strong><small id="totalTimeoutValue">—</small></div><span class="activity-time">秒</span></div>
+                </div>
+              </section>
+            </div>
+            <section class="panel funnel-panel">
+              <div class="panel-heading"><div><h2>搜索链路</h2><p>当前编排策略与质量阈值</p></div><span class="enabled-pill"><span class="status-dot"></span>已接入插件 API</span></div>
+              <div class="funnel-flow">
+                <div class="flow-step active-flow"><span>01</span><div><strong>主引擎</strong><small id="primaryEngineName">等待配置</small></div></div><i data-lucide="arrow-right" class="flow-arrow"></i>
+                <div class="flow-step"><span>02</span><div><strong>质量判断</strong><small id="qualityFlowText">数量阈值</small></div></div><i data-lucide="arrow-right" class="flow-arrow"></i>
+                <div class="flow-step"><span>03</span><div><strong>兜底补足</strong><small id="fallbackEngineName">等待配置</small></div></div><i data-lucide="arrow-right" class="flow-arrow"></i>
+                <div class="flow-step"><span>04</span><div><strong>结果合并</strong><small>URL 归一化验证</small></div></div>
+              </div>
+            </section>
+          </section>
+
+          <section class="view" id="view-search" data-view-panel="search">
+            <div class="page-intro compact"><div><div class="kicker">SEARCH LAB</div><h1>搜索测试</h1><p>使用当前插件配置运行一次真实搜索请求。</p></div><div class="lab-status"><span class="status-dot"></span><span class="live-text">等待 AstrBot</span></div></div>
+            <div class="search-layout">
+              <section class="panel search-form-panel">
+                <div class="panel-heading"><div><h2>发起测试查询</h2><p>结果会在右侧呈现</p></div><span class="request-id">LIVE API</span></div>
+                <label class="field-label" for="queryInput">查询内容</label>
+                <div class="query-box"><textarea id="queryInput" rows="4" maxlength="500" placeholder="例如：2026 年香港公众假期有哪些？"></textarea><span class="char-count" id="charCount">0 / 500</span></div>
+                <div class="field-grid"><div><label class="field-label" for="maxResults">结果数量</label><select id="maxResults"><option>5</option><option>10</option><option>15</option><option>20</option></select></div><div><label class="field-label" for="freshness">时间范围</label><select id="freshness"><option value="noLimit">不限时间</option><option value="day">过去一天</option><option value="week">过去一周</option><option value="month">过去一个月</option></select></div></div>
+                <div class="toggle-row"><div><strong>启用 LLM 质量验证</strong><small>对结果相关性和来源进行二次判断</small></div><button class="toggle" type="button" role="switch" aria-checked="false" data-toggle="llm"><span></span></button></div>
+                <button class="primary-button wide" type="button" id="runSearch"><i data-lucide="play"></i>运行搜索</button>
+                <div class="form-note"><i data-lucide="info"></i><span>此页面通过 AstrBot Plugin Page 调用插件 API；独立打开时不会伪造搜索结果。</span></div>
+              </section>
+              <section class="panel results-panel">
+                <div class="panel-heading"><div><h2>结果预览</h2><p id="resultMeta">等待一次搜索</p></div><button class="icon-button small" type="button" title="复制结果" id="copyResults"><i data-lucide="copy"></i></button></div>
+                <div class="result-list" id="resultList"><div class="empty-state"><span class="empty-icon"><i data-lucide="search"></i></span><strong>还没有搜索结果</strong><p>输入查询后运行，结果会显示在这里。</p></div></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="view" id="view-engines" data-view-panel="engines">
+            <div class="page-intro compact"><div><div class="kicker">ENGINE ORCHESTRATION</div><h1>引擎编排</h1><p>查看当前注册引擎、凭据状态与执行顺序。</p></div><button class="secondary-button" type="button" data-action="refresh"><i data-lucide="refresh-cw"></i>检查全部</button></div>
+            <section class="panel orchestration-panel"><div class="panel-heading"><div><h2>当前策略</h2><p>请求按照以下顺序处理</p></div><span class="enabled-pill"><span class="status-dot"></span>策略已启用</span></div><div class="orchestration-grid"><div class="order-card primary-order"><span class="order-index">01</span><div class="order-icon"><i data-lucide="search"></i></div><div><span class="mini-label">PRIMARY ENGINE</span><strong id="primaryFlowName">等待配置</strong><p id="primaryFlowText">等待插件配置</p></div><i data-lucide="grip-vertical" class="drag-icon"></i></div><div class="order-card fallback-order"><span class="order-index">02</span><div class="order-icon"><i data-lucide="life-buoy"></i></div><div><span class="mini-label">FALLBACK ENGINE</span><strong id="fallbackFlowName">等待配置</strong><p id="fallbackFlowText">等待插件配置</p></div><i data-lucide="grip-vertical" class="drag-icon"></i></div></div></section>
+            <section class="panel engine-table-panel"><div class="panel-heading"><div><h2>已注册引擎</h2><p id="engineTableCount">等待插件 API 返回引擎列表</p></div><button class="text-button" type="button" data-action="custom-engine"><i data-lucide="plus"></i>自定义引擎说明</button></div><div class="table-wrap"><table><thead><tr><th>引擎</th><th>角色</th><th>凭据</th><th>状态</th><th>响应</th></tr></thead><tbody id="engineTableBody"><tr><td colspan="5"><div class="empty-inline">等待 AstrBot API</div></td></tr></tbody></table></div></section>
+          </section>
+
+          <section class="view" id="view-settings" data-view-panel="settings">
+            <div class="page-intro compact"><div><div class="kicker">PLUGIN SETTINGS</div><h1>插件设置</h1><p>保存后会应用到下一次搜索请求。</p></div><div class="save-state" id="saveState"><i data-lucide="check"></i>等待读取</div></div>
+            <div class="settings-layout"><section class="panel settings-panel">
+              <div class="settings-section"><div class="settings-title"><span class="settings-number">01</span><div><h2>引擎与结果</h2><p>控制搜索来源和结果数量</p></div></div><div class="settings-fields"><div class="field-grid"><div><label class="field-label" for="primaryEngine">优先引擎</label><select id="primaryEngine"></select></div><div><label class="field-label" for="fallbackEngine">兜底引擎</label><select id="fallbackEngine"></select></div></div><div class="slider-field"><div class="slider-header"><label class="field-label" for="qualityRange">最低质量结果</label><output id="qualityOutput">— 条</output></div><input type="range" min="0" max="10" value="3" id="qualityRange" /></div><div class="slider-field"><div class="slider-header"><label class="field-label" for="resultsRange">默认结果数量</label><output id="resultsOutput">— 条</output></div><input type="range" min="1" max="20" value="5" id="resultsRange" /></div></div></div>
+              <div class="settings-divider"></div>
+              <div class="settings-section"><div class="settings-title"><span class="settings-number">02</span><div><h2>超时策略</h2><p>避免慢搜索阻塞对话</p></div></div><div class="settings-fields"><div class="field-grid"><div><label class="field-label" for="timeoutInput">单引擎超时</label><div class="input-with-unit"><input id="timeoutInput" type="number" value="6" min="5" max="120" /><span>秒</span></div></div><div><label class="field-label" for="totalTimeoutInput">整体超时</label><div class="input-with-unit"><input id="totalTimeoutInput" type="number" value="30" min="5" max="120" /><span>秒</span></div></div></div></div></div>
+              <div class="settings-divider"></div>
+              <div class="settings-section"><div class="settings-title"><span class="settings-number">03</span><div><h2>LLM 结果验证</h2><p>让模型判断相关性与来源可信度</p></div></div><div class="settings-fields"><div class="toggle-row setting-toggle"><div><strong>启用 LLM 验证</strong><small>失败时自动回退，不阻塞主搜索</small></div><button class="toggle" type="button" role="switch" aria-checked="false" data-toggle="llm-settings"><span></span></button></div><div><label class="field-label" for="providerSelect">验证 Provider</label><input id="providerSelect" type="text" placeholder="留空：使用当前会话 Provider" /></div></div></div>
+              <div class="settings-actions"><button class="secondary-button" type="button" data-action="reset"><i data-lucide="undo-2"></i>放弃修改</button><button class="primary-button" type="button" data-action="save"><i data-lucide="save"></i>保存设置</button></div>
+            </section><aside class="panel side-note"><div class="note-icon"><i data-lucide="lock-keyhole"></i></div><h2>凭据会被保护</h2><p>API Key 不会返回到页面。插件优先读取自身配置或 AstrBot Provider 配置，页面只展示配置状态。</p><div class="note-link"><i data-lucide="arrow-up-right"></i>自定义引擎放入 engines 目录</div></aside></div>
+          </section>
+        </div>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status"><i data-lucide="check-circle-2"></i><span>设置已保存</span></div>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,123 @@
+{
+ "primary_engine": {
+  "type": "string",
+  "description": "优先搜索引擎（第一优先级）",
+  "hint": "第一优先使用的搜索引擎。可填 bocha、anysearch、serpapi、bing（免 key，国内可直连）、google（免 key 降级网页版，建议配 google_api_key/google_cx）、duckduckgo（免 key，国内通常不可直连），或插件 engines/ 目录下自定义引擎的 ENGINE_NAME（放置 .py 文件后重启生效）。",
+  "default": "bocha"
+ },
+ "fallback_engine": {
+  "type": "string",
+  "description": "兜底搜索引擎（备选引擎）",
+  "hint": "当优先引擎结果不足（少于 min_quality_results）或失败时自动启用。可填 bocha、anysearch、serpapi、bing（免 key）、google（免 key 或配 google_api_key/google_cx）、duckduckgo（免 key），或 engines/ 目录下自定义引擎的 ENGINE_NAME。",
+  "default": "anysearch"
+ },
+ "bocha_api_key": {
+  "type": "string",
+  "description": "优先搜索引擎（第一优先级） API Key",
+  "hint": "当任一引擎选择 bocha 时填写。留空：自动读取 AStrBot 全局 Provider 的 websearch_bocha_key（支持多 Key 轮换）；填写：使用本插件填写的 Key。",
+  "default": ""
+ },
+ "fallback_api_key": {
+  "type": "string",
+  "description": "兜底搜索引擎（备选引擎）API Key",
+  "hint": "当任一引擎选择 anysearch 时填写 Anysearch API Key（留空走匿名访问，额度有限）；选择 serpapi 时填写 SerpAPI API Key（留空则读取环境变量 SERPAPI_API_KEY）。",
+  "default": ""
+ },
+ "google_api_key": {
+  "type": "string",
+  "description": "Google Custom Search JSON API Key",
+  "hint": "当任一引擎选择 google 时填写（配合 google_cx）。留空则读取环境变量 GOOGLE_API_KEY；都留空时 google 引擎降级为网页版解析（国内网络直连 Google 通常超时）。",
+  "default": ""
+ },
+ "google_cx": {
+  "type": "string",
+  "description": "Google Custom Search 搜索引擎 ID (cx)",
+  "hint": "当任一引擎选择 google 时填写（配合 google_api_key）。留空则读取环境变量 GOOGLE_CX。",
+  "default": ""
+ },
+ "min_quality_results": {
+  "type": "int",
+  "description": "触发兜底引擎补足的结果数阈值",
+  "hint": "当优先引擎返回结果少于该数量（或为 0）时，自动调用兜底引擎补足并交叉验证。设为 0 表示总是走补足流程。",
+  "default": 3,
+  "slider": {
+   "min": 0,
+   "max": 10,
+   "step": 1
+  }
+ },
+ "max_results": {
+  "type": "int",
+  "description": "单次搜索默认返回结果数",
+  "hint": "默认 5，最大 20。",
+  "default": 5,
+  "slider": {
+   "min": 1,
+   "max": 20,
+   "step": 1
+  }
+ },
+ "timeout": {
+  "type": "int",
+  "description": "搜索请求超时时间（秒）",
+  "hint": "两路搜索引擎的请求超时（方案A收紧默认值，配合 total_timeout 总闸）。",
+  "default": 6,
+  "slider": {
+   "min": 5,
+   "max": 120,
+   "step": 5
+  }
+ },
+ "total_timeout": {
+  "type": "int",
+  "description": "整体搜索总超时（秒）",
+  "hint": "整个搜索流程的硬性总闸：主引擎+LLM判质量+兜底+二次验证合计超时则强制返回部分结果。",
+  "default": 30,
+  "slider": {
+   "min": 5,
+   "max": 120,
+   "step": 5
+  }
+ },
+ "llm_verifier_enabled": {
+  "type": "bool",
+  "description": "启用 LLM 结果验证（可选）",
+  "hint": "开启后，搜索合并结果会交给一个 LLM 模型做相关性验证，剔除低相关条目并在结果末尾附验证摘要。默认关闭，不影响原有行为。验证失败时自动跳过，不影响搜索结果。",
+  "default": false
+ },
+ "llm_verifier_provider_id": {
+  "type": "string",
+  "description": "验证模型（复用 AStrBot 已配置模型）",
+  "_special": "select_provider",
+  "default": "",
+  "hint": "选择 AStrBot 中已配置的 LLM Provider 用于搜索结果验证。推荐使用 deepseek-v4-flash。留空则自动使用当前会话的默认 Provider，无需额外配置。"
+ },
+ "llm_verifier_prompt": {
+  "type": "text",
+  "description": "验证提示词模板（可自定义）",
+  "hint": "支持占位符 {query} 与 {results_json}。要求模型只输出严格 JSON：{\"results\":[{\"index\":0,\"relevant\":true,\"source_type\":\"official\",\"credibility\":\"high\",\"reason\":\"...\"}],\"summary\":\"...\"}。修改后需重启或热重载生效。",
+  "default": "你是搜索质量验证器。逐条判断下方候选结果是否与查询主题相关，并评估来源。只输出 JSON，不要任何多余文字。\n\n判定规则（从宽，宁漏勿杀）：\n1. relevant：内容与查询沾边即 true。自媒体/论坛/个人博客只要相关也判 true，绝不因来源非官方判 false。\n2. source_type：official=政府/机构/公司官网/百科；media=新闻媒体；blog=个人博客/自媒体；forum=社区/论坛；unknown=无法判断。\n3. credibility：官方/主流媒体=high；相关且有实质内容=medium；标题党/内容空洞/明显不相关=low。\n4. reason：不超过 20 字，说明相关点或不相关原因。\n\n输出格式（只输出此 JSON）：\n{\"results\": [{\"index\": 0, \"relevant\": true, \"source_type\": \"official\", \"credibility\": \"high\", \"reason\": \"直接解答查询\"}], \"summary\": \"≤40字整体结论\"}\n\n查询：{query}\n候选结果：\n{results_json}"
+ },
+ "llm_verifier_max_results": {
+  "type": "int",
+  "description": "交给验证模型的最大结果条数",
+  "hint": "控制验证成本，只验证前 N 条合并结果。默认 5。",
+  "default": 5,
+  "slider": {
+   "min": 1,
+   "max": 20,
+   "step": 1
+  }
+ },
+ "llm_verifier_timeout": {
+  "type": "int",
+  "description": "验证请求超时时间（秒）",
+  "hint": "验证模型调用超时，超时则跳过 LLM 校验，不影响搜索结果。",
+  "default": 10,
+  "slider": {
+   "min": 5,
+   "max": 120,
+   "step": 5
+  }
+ }
+}

@@ -1,0 +1,2 @@
+httpx>=0.24
+pydantic>=1.10
