@@ -4,7 +4,7 @@ SerpAPI（https://serpapi.com）返回真实搜索引擎（默认 Google）的�
 需要 API Key：https://serpapi.com/manage-api-key 注册获取（有免费额度）。
 
 Key 来源（任选其一，按优先级）：
-1. 插件 WebUI 配置页的 fallback_api_key 字段（推荐，插件会透传到 plugin_config；兼容旧字段 serpapi_api_key）
+1. 插件 WebUI 配置页的 serpapi_api_key 字段（方案A拆分的专用槽位，推荐）
 2. 环境变量 SERPAPI_API_KEY
 
 接入说明：本文件放在 engines/ 目录下，会被 smartsearch_fallback 自动发现并注册为
@@ -40,7 +40,7 @@ _CONTENT_TYPES_TBM = {
 def _resolve_api_key(plugin_config: dict | None) -> str:
     """按优先级解析 SerpAPI Key：插件配置 > 环境变量。"""
     cfg = plugin_config or {}
-    key = str(cfg.get("fallback_api_key") or cfg.get("serpapi_api_key") or "").strip()
+    key = str(cfg.get("serpapi_api_key") or cfg.get("fallback_api_key") or "").strip()
     if not key:
         key = str(os.environ.get("SERPAPI_API_KEY") or "").strip()
     return key
@@ -110,7 +110,7 @@ async def search(
     api_key = _resolve_api_key(plugin_config)
     if not api_key:
         raise ValueError(
-            "SerpAPI 引擎需要 API Key：请在插件 WebUI 配置页填写 fallback_api_key（或旧字段 serpapi_api_key），"
+            "SerpAPI 引擎需要 API Key：请在插件 WebUI 配置页填写 serpapi_api_key，或设置环境变量 SERPAPI_API_KEY，"
             "或设置环境变量 SERPAPI_API_KEY（https://serpapi.com/manage-api-key 获取）。"
         )
 

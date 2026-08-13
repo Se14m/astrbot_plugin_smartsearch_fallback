@@ -315,8 +315,8 @@ async def _anysearch_engine(
     """内置 anysearch 引擎（统一接口包装）。"""
     plugin_config = plugin_config or {}
     anysearch_key = str(
-        plugin_config.get("fallback_api_key")
-        or plugin_config.get("anysearch_api_key") or ""
+        plugin_config.get("anysearch_api_key")
+        or plugin_config.get("fallback_api_key") or ""
     ).strip()
     return await _anysearch_search(
         query, max_results, freshness, content_types,
@@ -718,20 +718,34 @@ async def _smart_search_impl(
     min_quality_raw = plugin_config.get("min_quality_results")
     min_quality = int(min_quality_raw) if min_quality_raw is not None else 3
     primary_name = str(plugin_config.get("primary_engine") or "bocha").strip().lower()
-    fallback_name = str(plugin_config.get("fallback_engine") or "anysearch").strip().lower()
+    # fallback_engine 支持逗号分隔的多级兜底链，如 "bing,serpapi"：
+    # 依次尝试，第一个成功返回结果的引擎作为兜底；全部失败且主引擎无结果时报错。
+    fallback_chain = [
+        x.strip().lower()
+        for x in str(plugin_config.get("fallback_engine") or "anysearch").split(",")
+        if x.strip()
+    ]
+    fallback_name = fallback_chain[0] if fallback_chain else ""
 
     registry = get_engine_registry()
     primary_fn = registry.get(primary_name)
-    fallback_fn = registry.get(fallback_name)
     available = ", ".join(sorted(registry.keys())) or "(无)"
-    if primary_fn is None or fallback_fn is None:
-        bad = primary_name if primary_fn is None else fallback_name
+    if primary_fn is None:
         return {
             "status": "error",
             "text": (
-                f"未知搜索引擎: {bad}。可用引擎: {available}。"
+                f"未知搜索引擎: {primary_name}。可用引擎: {available}。"
                 "可在插件 WebUI 配置 primary_engine / fallback_engine，"
                 "或在插件 engines/ 目录添加自定义引擎。"
+            ),
+        }
+    unknown_chain = [fb for fb in fallback_chain if fb not in registry]
+    if unknown_chain:
+        return {
+            "status": "error",
+            "text": (
+                f"未知兜底搜索引擎: {', '.join(unknown_chain)}。可用引擎: {available}。"
+                "可在插件 WebUI 配置 primary_engine / fallback_engine（支持逗号分隔多级兜底，如 bing,serpapi）。"
             ),
         }
 
@@ -802,30 +816,44 @@ async def _smart_search_impl(
                     fallback_reason = (
                         f"LLM 校验判定主引擎相关结果仅 {relevant_cnt} 条（阈值 {min_quality}），质量不佳"
                     )
-            if need_fallback and fallback_name != primary_name:
-                fallback_budget = min(timeout, _budget())
-                try:
-                    secondary = await asyncio.wait_for(
-                        fallback_fn(
-                            query, max_results, freshness, content_types,
-                            plugin_config, provider_settings, fallback_budget,
-                        ),
-                        timeout=fallback_budget,
-                    )
-                    used_fallback = True
-                    engines_used = f"{primary_name} + {fallback_name}" if primary else fallback_name
-                except asyncio.TimeoutError:
-                    logger.warning(f"{fallback_name} 阶段超时（预算 {fallback_budget:.1f}s），跳过兜底")
-                except Exception as e:  # noqa: BLE001
-                    logger.warning(f"{fallback_name} 补足失败: {e}")
-                    if not primary:
-                        return {
-                            "status": "error",
-                            "text": (
-                                f"两个搜索源({primary_name}/{fallback_name})均失败: {e}。"
-                                "请检查对应引擎的 key 与配置（插件 WebUI 配置页）。"
+            if need_fallback and primary_name not in fallback_chain:
+                # 多级兜底链：依次尝试 fallback_chain 中的引擎，第一个成功返回结果的即作为兜底
+                used_name = ""
+                for fb in fallback_chain:
+                    fb_fn = registry.get(fb)
+                    fb_budget = min(timeout, _budget())
+                    if fb_budget < 1.5:
+                        logger.warning(f"总预算不足（剩 {fb_budget:.1f}s），跳过剩余兜底引擎 {fb}")
+                        break
+                    try:
+                        candidate = await asyncio.wait_for(
+                            fb_fn(
+                                query, max_results, freshness, content_types,
+                                plugin_config, provider_settings, fb_budget,
                             ),
-                        }
+                            timeout=fb_budget,
+                        )
+                        candidate = _dedup(candidate)
+                        if candidate:
+                            secondary = candidate
+                            used_name = fb
+                            used_fallback = True
+                            engines_used = f"{primary_name} + {fb}" if primary else fb
+                            break
+                        logger.warning(f"{fb} 返回空结果，尝试下一个兜底引擎")
+                    except asyncio.TimeoutError:
+                        logger.warning(f"{fb} 阶段超时（预算 {fb_budget:.1f}s），尝试下一个兜底引擎")
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning(f"{fb} 补足失败: {e}，尝试下一个兜底引擎")
+                if not used_fallback and not primary:
+                    return {
+                        "status": "error",
+                        "text": (
+                            f"所有搜索源({primary_name}/{'/'.join(fallback_chain)})均失败。"
+                            "请检查对应引擎的 key、网络与配置（插件 WebUI 配置页）。"
+                        ),
+                    }
+                fallback_name = used_name or fallback_chain[0]
             if used_fallback:
                 logger.info(f"触发兜底引擎 {fallback_name}（原因: {fallback_reason}），并入 {len(secondary)} 条结果交叉验证")
             merged = _merge_and_verify(primary, secondary, primary_name, fallback_name)

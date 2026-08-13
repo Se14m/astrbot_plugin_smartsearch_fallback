@@ -4,7 +4,7 @@
 
 **可配置优先/兜底引擎的智能搜索工具插件（AStrBot）**
 
-> 当前版本 **v1.6.5** · 适配 AStrBot `>=4.16,<5`
+> 当前版本 **v1.7.0** · 适配 AStrBot `>=4.16,<5`
 
 默认「bocha 优先 + anysearch 兜底」，当优先引擎结果不足或失败时，自动调用兜底引擎补足，并对两路结果做交叉验证，输出带来源标记（`✓` 表示双引擎验证一致）的可靠结果。**优先/兜底引擎均可配置为任意搜索方式**（内置 bocha / anysearch，或放入 `engines/` 目录的自定义引擎）。
 
@@ -94,20 +94,45 @@ smart_search 工具
 
 ## WebUI 配置项说明
 
-插件启用后，AStrBot WebUI 的插件管理页会自动显示以下配置：
+插件启用后，AStrBot WebUI 的插件管理页会自动显示以下配置（按分组展示）：
+
+### 引擎选择
 
 | 配置项 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
-| `primary_engine` | string | `bocha` | 优先搜索引擎。可填 `bocha` / `anysearch` / `serpapi` / `bing`（免 key，国内可直连）/ `google`（免 key 降级网页版，建议配 key）/ `duckduckgo`（免 key），或 `engines/` 目录下自定义引擎的 `ENGINE_NAME` |
-| `fallback_engine` | string | `anysearch` | 兜底搜索引擎。优先引擎结果不足或验证质量不佳时启用；可填 `bocha` / `anysearch` / `serpapi` / `bing` / `google` / `duckduckgo`（均为免 key 或可选 key）等可用引擎名；填与 `primary_engine` 相同的值 = 关闭兜底 |
-| `bocha_api_key` | string | 空 | **优先搜索引擎 API Key（可选）**。留空自动读取 Provider 设置中的 `websearch_bocha_key`；填写后本插件 key 优先 |
-| `fallback_api_key` | string | 空 | **兜底引擎通用 API Key（可选）**。anysearch 留空走匿名访问（额度有限）；serpapi 必填（或用环境变量 `SERPAPI_API_KEY`）；自定义引擎亦可读取此字段 |
-| `google_api_key` | string | 空 | **Google Custom Search JSON API Key（可选）**。选择 `google` 引擎时配合 `google_cx` 使用；留空读取环境变量 `GOOGLE_API_KEY`，再留空则降级为 google.com 网页版解析（国内网络通常连不通，建议配 key） |
-| `google_cx` | string | 空 | **Google Custom Search 搜索引擎 ID（可选）**。配合 `google_api_key`；留空读取环境变量 `GOOGLE_CX` |
-| `min_quality_results` | int | 3 | 优先引擎结果数低于该值（或为 0）时触发兜底引擎补足；设为 0 表示总是走补足流程 |
-| `max_results` | int | 5 | 单次搜索默认返回结果数（1-20） |
-| `timeout` | int | 6 | 搜索请求超时时间（秒）。已按方案 A 收紧默认值，配合下方 `total_timeout` 总闸使用 |
-| `total_timeout` | int | 30 | **整体搜索总超时（秒）**。整个流程（主引擎 → LLM 判质量 → 兜底引擎 → 二次验证）的硬性总闸：各阶段按剩余预算动态分配，合计超时则强制返回已收集的部分结果，任何情况下搜索 ≤ 该值返回 |
+| `primary_engine` | string | `bocha` | **优先搜索引擎**。第一优先级，先用它搜。可填 `bocha` / `anysearch` / `serpapi` / `grok` / `bing`（免 Key，国内可直连）/ `duckduckgo`（免 Key，国内通常连不上），或 `engines/` 目录下自定义引擎的 `ENGINE_NAME`。填错引擎名该路直接报错并自动落到兜底链 |
+| `fallback_engine` | string | `anysearch` | **兜底搜索引擎**。优先引擎结果不足（少于 `min_quality_results`）或整体失败时，按逗号分隔顺序逐个尝试，第一个成功返回的即作为兜底。推荐国内稳定组合：`bing,serpapi` |
+
+### API Key（方案 A：每个引擎独立 Key 槽，互不复用）
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| `bocha_api_key` | string | 空 | **Bocha 引擎密钥**。仅当任一引擎选 `bocha` 时生效。留空自动读取 Provider 设置的 `websearch_bocha_key`（支持多 Key 轮换）；填写后本插件 Key 优先 |
+| `anysearch_api_key` | string | 空 | **Anysearch 引擎密钥**。仅当任一引擎选 `anysearch` 时生效。留空走匿名访问（额度有限、易触发限流）；填写官方 Key 可显著提升稳定性 |
+| `serpapi_api_key` | string | 空 | **SerpAPI 引擎密钥**。仅当任一引擎选 `serpapi` 时生效。在 https://serpapi.com 注册获取；留空回退读取环境变量 `SERPAPI_API_KEY` |
+| `grok_api_key` | string | 空 | **Grok 引擎密钥（xAI Web Search）**。仅当任一引擎选 `grok` 时生效。在 https://console.x.ai 获取，需充值无免费额度；留空回退读取环境变量 `XAI_API_KEY`。只认本槽位，不复用其它 Key 槽 |
+| `grok_base_url` | string | `https://api.x.ai/v1` | **Grok 引擎 API 端点**。使用 OpenAI 兼容中转时填中转地址（形如 `https://xxx/v1`）；留空读取环境变量 `XAI_BASE_URL`。第三方中转若服务端不支持 `web_search` 工具透传，grok 引擎会静默失败 |
+| `grok_model` | string | `grok-4-fast` | **Grok 引擎模型名**。可选 `grok-4` / `grok-3.5` 等（需账户可用）；留空读取环境变量 `XAI_MODEL`。实测 `grok-4-fast` 响应快但判断偶有误判，追求准确选 `grok-4` |
+| `fallback_api_key` | string | 空 | **自定义引擎通用密钥（预留槽位）**。方案 A 后专用 Key 槽已拆分，本槽位仅保留给 `engines/` 目录下的自定义引擎读取，普通配置无需填写 |
+
+### 质量与超时
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| `min_quality_results` | int | 3 | **兜底引擎触发阈值**。优先引擎结果数低于该值（或为 0）时自动调用兜底引擎补足并交叉验证；设为 0 表示任何情况都强制走兜底流程 |
+| `max_results` | int | 5 | **单次搜索默认返回条数**（1-20） |
+| `timeout` | int | 6 | **单引擎请求超时（秒）**。方案 A 收紧后的默认值，配合下方 `total_timeout` 总闸控制整体耗时 |
+| `total_timeout` | int | 30 | **整体搜索总超时（秒）**。主引擎 → LLM 判质量 → 兜底引擎 → 二次验证的硬性总闸：累计超时则强制返回已得的部分结果，任何情况下搜索 ≤ 该值返回 |
+
+### LLM 验证
+
+| 配置项 | 类型 | 默认值 | 说明 |
+|---|---|---|---|
+| `llm_verifier_enabled` | bool | `false` | **启用 LLM 结果验证**。开启后合并结果交由 LLM 做相关性验证，剔除低相关条目并附验证摘要；默认关闭，验证失败自动跳过不影响结果 |
+| `llm_verifier_provider_id` | string | 空 | **验证模型**。下拉复用 AStrBot 已配置 Provider；实测推荐 `deepseek-v4-flash`（比 grok-4 更快更省且判断准确）；留空自动用当前会话默认 Provider |
+| `llm_verifier_prompt` | text | 见默认 | **验证提示词模板**。支持占位符 `{query}` 与 `{results_json}`，要求模型只输出严格 JSON；修改后需重启或热重载生效 |
+| `llm_verifier_max_results` | int | 5 | **单次最多验证条数**。控制验证成本，只验证合并结果前 N 条 |
+| `llm_verifier_timeout` | int | 10 | **验证请求超时（秒）**。超时则跳过 LLM 校验，不影响搜索结果 |
 
 > 修改配置后在 WebUI 中保存并重新加载插件即可生效。新增/修改 `engines/` 目录下的自定义引擎后需重启插件（或重启 AStrBot）才会被加载。
 
@@ -137,7 +162,7 @@ ENGINE_NAME = "serpapi"   # 用于 primary_engine / fallback_engine 配置，须
 async def search(query, max_results=5, freshness="", content_types="",
                  plugin_config=None, provider_settings=None, timeout=30):
     """统一引擎接口。返回 [{"title": str, "url": str, "snippet": str}]"""
-    api_key = (plugin_config or {}).get("fallback_api_key", "")  # 可选：读插件配置（兜底引擎通用 Key）
+    api_key = (plugin_config or {}).get("fallback_api_key", "")  # 可选：读插件配置（自定义引擎通用 Key 槽）
     # ... 调用你的搜索服务，组装成上面的列表结构 ...
     return results
 ```
@@ -169,18 +194,24 @@ async def search(query, max_results=5, freshness="", content_types="",
 
 ## 配置优先级
 
-**bocha key**：插件配置 `bocha_api_key` > Provider 设置 `websearch_bocha_key`（多 key 轮换）
+**bocha**：插件配置 `bocha_api_key` > Provider 设置 `websearch_bocha_key`（多 Key 轮换）
 
-**兜底引擎（anysearch/serpapi）**：插件配置 `fallback_api_key`；anysearch 留空走匿名访问，serpapi 留空可读环境变量 `SERPAPI_API_KEY`（旧字段 `anysearch_api_key` / `serpapi_api_key` 仍兼容）
+**anysearch**：插件配置 `anysearch_api_key` > 匿名访问（额度有限）。方案 A 前旧字段 `fallback_api_key` 兼容回退
 
-**google 引擎**：插件配置 `google_api_key` + `google_cx`（或环境变量 `GOOGLE_API_KEY` / `GOOGLE_CX`）；两者齐全走官方 Custom Search JSON API，否则降级为 google.com 网页版解析（国内网络直连 Google 通常超时，会按异常转兜底）。注册入口：https://programmablesearchengine.google.com/ 创建搜索项目获取 cx，https://console.cloud.google.com/ 开启 Custom Search API 获取 key。
+**serpapi**：插件配置 `serpapi_api_key` > 环境变量 `SERPAPI_API_KEY`。方案 A 前旧字段 `fallback_api_key` 兼容回退
 
-**bing 引擎**：免 key，直接解析 bing.com/cn.bing.com 搜索结果页，国内网络可直连，无需配置。
+**grok**：插件配置 `grok_api_key` > 环境变量 `XAI_API_KEY`（端点/模型同理：`grok_base_url` > `XAI_BASE_URL`，`grok_model` > `XAI_MODEL`）。方案 A 起不再复用 `fallback_api_key`
+
+**bing**：免 Key，直接解析 bing.com/cn.bing.com 搜索结果页，国内网络可直连，无需配置。
+
+**duckduckgo**：免 Key，国内网络通常无法直连，失败时自动转兜底。
+
+**自定义引擎（engines/ 目录）**：可自由读取插件配置任意字段，通用槽位约定为 `fallback_api_key`。
 
 ## 常见问题
 
 **Q: 两个搜索源都失败了？**
-检查优先/兜底引擎对应的 key 配置（如 Provider 设置中的 `websearch_bocha_key`、插件配置页的 `fallback_api_key` / `bocha_api_key`），再确认对应端点可达。工具返回的错误信息会指出失败的引擎名。
+检查优先/兜底引擎对应的 Key 配置（如 Provider 设置中的 `websearch_bocha_key`、插件配置页的 `bocha_api_key` / `anysearch_api_key` / `serpapi_api_key` / `grok_api_key`），再确认对应端点可达。工具返回的错误信息会指出失败的引擎名。
 
 **Q: 如何完全关闭兜底引擎？**
 将 `fallback_engine` 配置为与 `primary_engine` 相同的引擎名即可（此时只使用单一引擎，不再补足交叉验证）。
@@ -197,6 +228,7 @@ async def search(query, max_results=5, freshness="", content_types="",
 
 ## 更新日志
 
+- **v1.7.0**：方案 A 2.0 Key 槽位拆分与描述全面重写。① **Key 槽位拆分**：`fallback_api_key` 拆分为 `anysearch_api_key` / `serpapi_api_key` / `grok_api_key` 三个专用槽，各引擎 Key 互不复用（旧配置中的 `fallback_api_key` 值已由迁移脚本转移到对应专用槽，代码层保留旧字段兼容回退）；② **移除 google 引擎**：删除 `engines/google.py` 与 `google_api_key` / `google_cx` 配置项（国内直连不稳定、收益低），主/兜底引擎不再支持 `google`；③ **配置介绍全部推翻重写**：`_conf_schema.json` 全部 18 个配置项的 description / hint 从零重写并分组（引擎选择 / API Key / 质量与超时 / LLM 验证），README 同步重写配置表格与优先级说明
 - **v1.6.5**：接入 AstrBot Plugin Pages WebUI。新增总览、真实搜索测试、引擎编排、健康检查和设置保存页面；新增插件 Web API；配置保存后同步应用到当前运行实例；API Key 仅返回配置状态和掩码；保留 `_conf_schema.json` 兼容旧版 AstrBot。
 - **v1.6.0**：方案 B+A 性能改造。① **新增 `total_timeout` 全局总闸（默认 30s）**：整个搜索流程（主引擎 → LLM 判质量 → 兜底引擎 → 二次验证）串行累加最坏可达 120s，现由最外层 `asyncio.timeout` 硬性锁死 ≤30s，超时强制返回已收集的部分结果；② **阶段预算动态分配**：各阶段调用统一取 `min(原超时, 剩余预算)`，慢 provider 被预算掐死而非吃掉全局时间；二次验证在总预算剩余不足 5s 时跳过新 LLM 调用、复用判质量结果；③ **方案 A 配置收紧**：`timeout` 默认 30→6s、`llm_verifier_timeout` 默认 30→10s（最坏 6+10+6+10=32s，由总闸兜底），正常场景速度不变
 - **v1.5.1**：新增免 key 引擎 `bing`（国内可直连，解析 bing.com/cn.bing.com 网页结果）与 `google`（优先官方 Custom Search JSON API，未配 key 时降级网页版解析）；新增 `google_api_key` / `google_cx` 配置项（兼容环境变量 `GOOGLE_API_KEY` / `GOOGLE_CX`）

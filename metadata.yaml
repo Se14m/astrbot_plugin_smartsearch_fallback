@@ -3,9 +3,9 @@ display_name: SmartSearch智能搜索
 short_desc: 可配置优先/兜底引擎的智能搜索编排工具
 desc: smartsearch_fallback 为 AStrBot 提供"优先引擎 + 兜底引擎"的智能搜索编排能力：默认优先 bocha，失败或结果不足时自动切换 anysearch 补足，并对两路结果做 URL 归一化交叉验证，输出带来源标记的高质量搜索结果。优先/兜底引擎均可配置为任意搜索方式（内置 bocha/anysearch/serpapi，或放入 engines/ 目录的自定义引擎）；可选开启 LLM 结果验证，直接复用 AStrBot 已配置的模型，剔除低相关结果。
 help: 直接让 LLM 调用 smart_search / smart_search_batch 工具即可；也可以使用 /smartsearch <关键词> 手动触发搜索。
-version: 1.6.5
-author: D621A9261C4DCE403E312EC6E9BA4ABE
-repo: https://github.com/Se14m/astrbot_plugin_smartsearch_fallback
+version: 1.7.0
+author: Se14m
+repo: "https://github.com/Se14m/astrbot_plugin_smartsearch_fallback"
 astrbot_version: ">=4.16,<5"
 tags:
   - 搜索

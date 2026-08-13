@@ -16,12 +16,12 @@ from .tools import (
     "smartsearch_fallback",
     "smartsearch_fallback",
     "可配置优先/兜底引擎的智能搜索工具（内置 bocha/anysearch + 自定义引擎 + 可选 LLM 结果验证）",
-    "1.6.5",
+    "1.7.0",
     "https://github.com/Se14m/astrbot_plugin_smartsearch_fallback",
 )
 class SmartSearchFallbackPlugin(Star):
-    VERSION = "1.6.5"
-    SECRET_FIELDS = ("bocha_api_key", "fallback_api_key", "google_api_key")
+    VERSION = "1.7.0"
+    SECRET_FIELDS = ("bocha_api_key", "anysearch_api_key", "serpapi_api_key", "grok_api_key", "fallback_api_key")
     DEFAULTS = {
         "primary_engine": "bocha",
         "fallback_engine": "anysearch",
@@ -47,7 +47,7 @@ class SmartSearchFallbackPlugin(Star):
         self._register_web_api()
         engines = get_engine_registry()
         logger.info(
-            "smartsearch_fallback 1.6.5 已注册: smart_search / smart_search_batch "
+            "smartsearch_fallback 1.7.0 已注册: smart_search / smart_search_batch "
             f"(优先={self.plugin_config.get('primary_engine')}, "
             f"兜底={self.plugin_config.get('fallback_engine')}, "
             f"可用引擎={', '.join(sorted(engines)) or '无'})"
@@ -123,7 +123,8 @@ class SmartSearchFallbackPlugin(Star):
         for field in ("primary_engine", "fallback_engine"):
             if field in body:
                 value = str(body[field] or "").strip().lower()
-                if value not in registry:
+                names = [x.strip() for x in value.split(",") if x.strip()]
+                if not names or any(n not in registry for n in names):
                     return self._json_error(f"未知搜索引擎: {value}")
                 next_config[field] = value
         integer_rules = {
