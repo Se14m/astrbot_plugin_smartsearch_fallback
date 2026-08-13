@@ -16,11 +16,11 @@ from .tools import (
     "smartsearch_fallback",
     "smartsearch_fallback",
     "可配置优先/兜底引擎的智能搜索工具（内置 bocha/anysearch + 自定义引擎 + 可选 LLM 结果验证）",
-    "1.7.0",
+    "1.7.1",
     "https://github.com/Se14m/astrbot_plugin_smartsearch_fallback",
 )
 class SmartSearchFallbackPlugin(Star):
-    VERSION = "1.7.0"
+    VERSION = "1.7.1"
     SECRET_FIELDS = ("bocha_api_key", "anysearch_api_key", "serpapi_api_key", "grok_api_key", "fallback_api_key")
     DEFAULTS = {
         "primary_engine": "bocha",
@@ -47,7 +47,7 @@ class SmartSearchFallbackPlugin(Star):
         self._register_web_api()
         engines = get_engine_registry()
         logger.info(
-            "smartsearch_fallback 1.7.0 已注册: smart_search / smart_search_batch "
+            "smartsearch_fallback 1.7.1 已注册: smart_search / smart_search_batch "
             f"(优先={self.plugin_config.get('primary_engine')}, "
             f"兜底={self.plugin_config.get('fallback_engine')}, "
             f"可用引擎={', '.join(sorted(engines)) or '无'})"

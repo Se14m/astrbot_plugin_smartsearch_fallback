@@ -4,7 +4,7 @@
 
 **可配置优先/兜底引擎的智能搜索工具插件（AStrBot）**
 
-> 当前版本 **v1.7.0** · 适配 AStrBot `>=4.16,<5`
+> 当前版本 **v1.7.1** · 适配 AStrBot `>=4.16,<5`
 
 默认「bocha 优先 + anysearch 兜底」，当优先引擎结果不足或失败时，自动调用兜底引擎补足，并对两路结果做交叉验证，输出带来源标记（`✓` 表示双引擎验证一致）的可靠结果。**优先/兜底引擎均可配置为任意搜索方式**（内置 bocha / anysearch，或放入 `engines/` 目录的自定义引擎）。
 
@@ -228,6 +228,7 @@ async def search(query, max_results=5, freshness="", content_types="",
 
 ## 更新日志
 
+- **v1.7.1**：以 v1.7.1 重新发布（商店侧 v1.7.0 版本号已占用、无法复用；内容与 v1.7.0 一致）
 - **v1.7.0**：方案 A 2.0 Key 槽位拆分与描述全面重写。① **Key 槽位拆分**：`fallback_api_key` 拆分为 `anysearch_api_key` / `serpapi_api_key` / `grok_api_key` 三个专用槽，各引擎 Key 互不复用（旧配置中的 `fallback_api_key` 值已由迁移脚本转移到对应专用槽，代码层保留旧字段兼容回退）；② **移除 google 引擎**：删除 `engines/google.py` 与 `google_api_key` / `google_cx` 配置项（国内直连不稳定、收益低），主/兜底引擎不再支持 `google`；③ **配置介绍全部推翻重写**：`_conf_schema.json` 全部 18 个配置项的 description / hint 从零重写并分组（引擎选择 / API Key / 质量与超时 / LLM 验证），README 同步重写配置表格与优先级说明
 - **v1.6.5**：接入 AstrBot Plugin Pages WebUI。新增总览、真实搜索测试、引擎编排、健康检查和设置保存页面；新增插件 Web API；配置保存后同步应用到当前运行实例；API Key 仅返回配置状态和掩码；保留 `_conf_schema.json` 兼容旧版 AstrBot。
 - **v1.6.0**：方案 B+A 性能改造。① **新增 `total_timeout` 全局总闸（默认 30s）**：整个搜索流程（主引擎 → LLM 判质量 → 兜底引擎 → 二次验证）串行累加最坏可达 120s，现由最外层 `asyncio.timeout` 硬性锁死 ≤30s，超时强制返回已收集的部分结果；② **阶段预算动态分配**：各阶段调用统一取 `min(原超时, 剩余预算)`，慢 provider 被预算掐死而非吃掉全局时间；二次验证在总预算剩余不足 5s 时跳过新 LLM 调用、复用判质量结果；③ **方案 A 配置收紧**：`timeout` 默认 30→6s、`llm_verifier_timeout` 默认 30→10s（最坏 6+10+6+10=32s，由总闸兜底），正常场景速度不变
